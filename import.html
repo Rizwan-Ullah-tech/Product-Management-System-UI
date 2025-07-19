@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Products | Product Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-boxes me-2"></i>Product Management System</h1>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="index.html" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Products
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="import-container">
+            <h2 class="mb-4"><i class="fas fa-file-import me-2"></i>Import Products</h2>
+
+            <form id="importForm" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label for="import_file" class="form-label">Select Excel File (CSV)</label>
+                    <input type="file" class="form-control" id="import_file" name="import_file" accept=".csv" required>
+                    <div id="fileSizeError" class="text-danger mt-2">File size exceeds 2MB limit.</div>
+                </div>
+
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle me-2"></i>File Format Requirements:</h5>
+                    <ul class="mb-0">
+                        <li>CSV format with columns: <strong>Name, Price, Quantity</strong></li>
+                        <li>First row should be headers (will be skipped)</li>
+                        <li>Price must be numeric</li>
+                        <li>Quantity must be integer</li>
+                        <li>File size limit: 2MB</li>
+                    </ul>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="index.html" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Import Products</button>
+                </div>
+                <div id="importSuccess" class="alert alert-success mt-3">
+                    Products imported successfully!
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="mt-5 py-4 text-center text-muted">
+        <p>Product Management System &copy; 2023 | Built with HTML and CSS</p>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.getElementById('fileSizeError').style.display = 'none';
+document.getElementById('importSuccess').style.display = 'none';
+
+document.getElementById('importForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const fileInput = document.getElementById('import_file');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please select a file to import.");
+        return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+        document.getElementById('fileSizeError').style.display = 'block';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const text = e.target.result.trim();
+        const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+
+        if (lines.length <= 1) {
+            alert("CSV file must contain at least one row of data.");
+            return;
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const nameIndex = headers.indexOf('name');
+        const priceIndex = headers.indexOf('price');
+        const quantityIndex = headers.indexOf('quantity');
+
+        if (nameIndex === -1 || priceIndex === -1 || quantityIndex === -1) {
+            alert("CSV headers must include: Name, Price, Quantity");
+            return;
+        }
+
+        const existingProducts = JSON.parse(localStorage.getItem('products')) || [];
+        const maxId = existingProducts.length > 0 ? Math.max(...existingProducts.map(p => p.id)) : 0;
+        let newProducts = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1')); // ← Strip surrounding quotes
+
+            const name = cols[nameIndex];
+            const price = parseFloat(cols[priceIndex]);
+            const quantity = parseInt(cols[quantityIndex]);
+
+            if (!name || isNaN(price) || isNaN(quantity)) continue;
+
+            newProducts.push({
+                id: maxId + i,
+                name,
+                price,
+                quantity
+            });
+        }
+
+        if (newProducts.length === 0) {
+            alert("No valid products found in CSV.");
+            return;
+        }
+
+        const updatedProducts = [...existingProducts, ...newProducts];
+        localStorage.setItem('products', JSON.stringify(updatedProducts));
+
+        document.getElementById('importSuccess').style.display = 'block';
+        fileInput.value = '';
+    };
+
+    reader.readAsText(file);
+});
+</script>
+
+
+
+</body>
+</html>
